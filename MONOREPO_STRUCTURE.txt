@@ -1,0 +1,38 @@
+# Estructura del Monorepo open-erp
+
+## Visión General
+
+```
+open-erp/
+│
+├── apps/                          ← Todas las aplicaciones
+│   ├── erp-api/                   ← Backend NestJS (REST + GraphQL)
+│   ├── erp-frontend/              ← Frontend React (Panel del ERP)
+│   ├── bi-dashboard/              ← Dashboard BI (Next.js + GraphQL)
+│   └── field-app/                 ← App móvil (React Native)
+│
+├── libs/                          ← Librerías compartidas entre apps
+│   ├── database/                  ← Prisma schema + cliente + migraciones + seed
+│   └── shared/                    ← Tipos TypeScript, interfaces, constantes
+│
+├── packages/                      ← Utilidades reutilizables (opcional)
+│   ├── ui/                        ← Componentes compartidos (si los hubiera)
+│   └── utils/                     ← Funciones helper genéricas
+│
+├── package.json                   ← Configuración workspaces + scripts globales
+├── docker-compose.yml             ← PostgreSQL local
+├── .env.example                   ← Variables de entorno documentadas
+├── .github/workflows/             ← CI/CD automático
+└── README.md                      ← Documentación principal
+```
+
+## Qué vive en cada carpeta
+
+| Carpeta | Contenido | Ejemplo |
+|---------|-----------|---------|
+| `erp-api/` | CRUD endpoints, lógica de negocio, auth JWT, resolvers GraphQL | `POST /products`, `peso_neto` |
+| `erp-frontend/` | Interfaces para gestionar productos, proveedores, órdenes | Tablas, formularios, dashboards |
+| `bi-dashboard/` | Gráficos de EBITDA, métricas financieras, KPIs | Charts con Recharts |
+| `field-app/` | App offline-first para trabajo en campo | Cola de mutaciones, sync |
+| `database/` | Esquema Prisma, migraciones, seed data | `schema.prisma` |
+| `shared/` | Tipos que usan todas las apps | `interface Product { ... }` |
