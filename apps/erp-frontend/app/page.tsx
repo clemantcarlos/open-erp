@@ -13,19 +13,15 @@ import {
   Megaphone,
   ShoppingCart,
   BarChart3,
-  Bug,
   ClipboardList,
   Wrench,
   Factory,
   ShieldCheck,
-  Circle,
   Target,
   Globe,
-  MessageCircle,
   Receipt,
   LayoutDashboard,
   LayoutGrid,
-  Wallet,
   Zap,
   UsersRound,
   HardHat,
@@ -62,9 +58,8 @@ const modules = [
 
 export default function Home() {
   return (
-    <div className="w-full min-h-screen bg-[#f0f0f0]">
-      {/* Top bar */}
-      <header className="flex items-center justify-between border-b bg-white px-6 py-3">
+    <div className="w-full min-h-screen bg-zinc-200">
+      <header className="fixed w-full flex items-center justify-between border-b bg-white px-6 py-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-zinc-900">
             <span className="text-sm font-bold text-white">OE</span>
@@ -81,20 +76,22 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Module grid */}
-      <main className="mx-auto max-w-3xl px-6 py-10 flex flex-wrap  gap-y-4">
-        {modules.map((mod) => (
-          <div key={mod.name} className="w-36 flex flex-col items-center justify-center gap-2">
-            <button
-              className="group flex flex-col items-center  rounded-sm bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <mod.icon className={`size-8 ${mod.color}`} strokeWidth={1.5} />
-            </button>
-            <span className="text-center text-xs font-medium text-zinc-700 group-hover:text-zinc-900">
-              {mod.name}
-            </span>
-          </div>
-        ))}
+      <main className="pt-22 max-w-3xl mx-auto py-10">
+        <div className="flex flex-wrap gap-y-8 text-start justify-between">
+          {modules.map((mod) => (
+            <a key={mod.name} className="w-36 flex flex-col items-center justify-center gap-2 hover:cursor-pointer hover:*:first:-translate-y-0.5 hover:*:first:shadow-lg">
+              <div
+                className="group flex flex-col items-center  rounded-sm bg-white p-2 shadow-md transition-all duration
+                hover:cursor-pointer"
+              >
+                <mod.icon className={`size-12 ${mod.color} hover:cursor-pointer`} strokeWidth={1.5}/>
+              </div>
+              <span className="text-center text-xs font-medium text-zinc-700 group-hover:text-zinc-900 hover:cursor-pointer">
+                {mod.name}
+              </span>
+            </a>
+          ))}
+        </div>
       </main>
     </div>
   );
