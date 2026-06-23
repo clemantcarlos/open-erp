@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -22,7 +20,7 @@ export default function LoginPage() {
     const password = form.get("password") as string;
 
     try {
-      const res = await fetch(`${API_URL}/auth/local/signin`, {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -31,12 +29,13 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message ?? "Invalid credentials");
+        setError(data.error ?? "Invalid credentials");
         return;
       }
 
-      localStorage.setItem("accessToken", data.data.tokens.accessToken);
-      localStorage.setItem("refreshToken", data.data.tokens.refreshToken);
+      // Store tokens for backend API calls
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
       router.push("/");
     } catch {
       setError("Could not reach the server");
