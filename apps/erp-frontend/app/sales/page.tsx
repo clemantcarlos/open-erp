@@ -1,18 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Search,
-  ArrowLeft,
   Plus,
   Eye,
   FileText,
-  DollarSign,
   Clock,
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import Link from "next/link";
 
 interface Sale {
@@ -27,28 +26,37 @@ interface Sale {
   paymentMethod: string;
 }
 
-const sales: Sale[] = [
-  { id: "V-001", date: "2026-06-23", customer: "María García", items: 3, subtotal: 25.0, tax: 4.0, total: 29.0, status: "paid", paymentMethod: "Efectivo" },
-  { id: "V-002", date: "2026-0023", customer: "Carlos López", items: 1, subtotal: 8.5, tax: 1.36, total: 9.86, status: "paid", paymentMethod: "Tarjeta" },
-  { id: "V-003", date: "2026-06-23", customer: "Ana Martínez", items: 5, subtotal: 42.0, tax: 6.72, total: 48.72, status: "pending", paymentMethod: "PagoMóvil" },
-  { id: "V-004", date: "2026-06-22", customer: "Pedro Sánchez", items: 2, subtotal: 15.0, tax: 2.4, total: 17.4, status: "paid", paymentMethod: "Efectivo" },
-  { id: "V-005", date: "2026-06-22", customer: "Laura Rodríguez", items: 4, subtotal: 33.5, tax: 5.36, total: 38.86, status: "cancelled", paymentMethod: "Tarjeta" },
-  { id: "V-006", date: "2026-06-22", customer: "Jorge Hernández", items: 1, subtotal: 5.5, tax: 0.88, total: 6.38, status: "paid", paymentMethod: "Efectivo" },
-  { id: "V-007", date: "2026-06-21", customer: "Carmen Díaz", items: 6, subtotal: 58.0, tax: 9.28, total: 67.28, status: "paid", paymentMethod: "PagoMóvil" },
-  { id: "V-008", date: "2026-06-21", customer: "Roberto Torres", items: 2, subtotal: 12.0, tax: 1.92, total: 13.92, status: "pending", paymentMethod: "Tarjeta" },
-  { id: "V-009", date: "2026-06-20", customer: "Isabel Flores", items: 3, subtotal: 28.5, tax: 4.56, total: 33.06, status: "paid", paymentMethod: "Efectivo" },
-  { id: "V-010", date: "2026-06-20", customer: "Miguel Ángel Reyes", items: 1, subtotal: 7.0, tax: 1.12, total: 8.12, status: "paid", paymentMethod: "Tarjeta" },
-];
-
 const statusConfig = {
-  paid: { label: "Pagada", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
+  paid: { label: "Pagada", color: "bg-sage/10 text-sage", icon: CheckCircle },
   pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700", icon: Clock },
-  cancelled: { label: "Cancelada", color: "bg-red-100 text-red-700", icon: XCircle },
+  cancelled: { label: "Cancelada", color: "bg-terracotta/10 text-terracotta", icon: XCircle },
 };
 
 export default function SalesPage() {
+  const [sales, setSales] = useState<Sale[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "cancelled">("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sales")
+      .then((res) => res.json())
+      .then((data) => {
+        setSales(data.map((s: any) => ({
+          id: s.id,
+          date: new Date(s.date).toISOString().split("T")[0],
+          customer: s.customer || "Cliente general",
+          items: Array.isArray(s.items) ? s.items.length : 0,
+          subtotal: Number(s.subtotal),
+          tax: Number(s.tax),
+          total: Number(s.total),
+          status: s.status,
+          paymentMethod: s.paymentMethod,
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const filtered = sales.filter((s) => {
     const matchesSearch =
@@ -58,24 +66,26 @@ export default function SalesPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const todaySales = sales.filter((s) => s.date === "2026-06-23" && s.status === "paid");
+  const todaySales = sales.filter((s) => s.date === new Date().toISOString().split("T")[0] && s.status === "paid");
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
   const pendingCount = sales.filter((s) => s.status === "pending").length;
   const monthlyRevenue = sales.filter((s) => s.status === "paid").reduce((sum, s) => sum + s.total, 0);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando ventas...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-100">
+    <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b bg-white px-6 py-3 shadow-sm">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-sand bg-cream/80 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
           <TrendingUp className="size-5 text-purple-600" />
-          <h1 className="text-lg font-semibold">Ventas</h1>
+          <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Ventas" }]} />
         </div>
         <button className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
           <Plus className="size-4" />
@@ -86,37 +96,37 @@ export default function SalesPage() {
       <div className="mx-auto max-w-6xl px-6 py-6">
         {/* Stats */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-xs text-zinc-500">Ventas hoy</p>
-            <p className="mt-1 text-2xl font-bold text-zinc-900">{todaySales.length}</p>
+          <div className="rounded-xl border border-sand bg-white p-4">
+            <p className="text-xs text-espresso-light">Ventas hoy</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-espresso">{todaySales.length}</p>
           </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-xs text-zinc-500">Ingreso hoy</p>
-            <p className="mt-1 text-2xl font-bold text-purple-600">${todayRevenue.toFixed(2)}</p>
+          <div className="rounded-xl border border-sand bg-white p-4">
+            <p className="text-xs text-espresso-light">Ingreso hoy</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-purple-600">${todayRevenue.toFixed(2)}</p>
           </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-xs text-zinc-500">Pendientes</p>
+          <div className="rounded-xl border border-sand bg-white p-4">
+            <p className="text-xs text-espresso-light">Pendientes</p>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
+              <p className="font-mono text-2xl font-bold text-amber-700">{pendingCount}</p>
               {pendingCount > 0 && <Clock className="size-4 text-amber-500" />}
             </div>
           </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-xs text-zinc-500">Ingreso mensual</p>
-            <p className="mt-1 text-2xl font-bold text-zinc-900">${monthlyRevenue.toFixed(2)}</p>
+          <div className="rounded-xl border border-sand bg-white p-4">
+            <p className="text-xs text-espresso-light">Ingreso mensual</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-espresso">${monthlyRevenue.toFixed(2)}</p>
           </div>
         </div>
 
         {/* Search + filters */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-espresso-light" />
             <input
               type="text"
               placeholder="Buscar por cliente o ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-300"
+              className="w-full rounded-lg border border-sand bg-sand/30 py-2 pl-9 pr-3 text-sm text-espresso outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/30"
             />
           </div>
           <div className="flex gap-1">
@@ -127,7 +137,7 @@ export default function SalesPage() {
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   statusFilter === status
                     ? "bg-purple-600 text-white"
-                    : "bg-white text-zinc-600 hover:bg-zinc-100 border"
+                    : "bg-sand/30 text-espresso-light hover:bg-sand/50"
                 }`}
               >
                 {status === "all" ? "Todas" : statusConfig[status].label}
@@ -137,10 +147,10 @@ export default function SalesPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-sand bg-white">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-zinc-50 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+              <tr className="border-b border-sand bg-sand/10 text-left text-xs font-medium text-espresso-light uppercase tracking-wider">
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Fecha</th>
                 <th className="px-4 py-3">Cliente</th>
@@ -151,10 +161,10 @@ export default function SalesPage() {
                 <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-sand">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-espresso-light">
                     <FileText className="mx-auto mb-2 size-8" />
                     <p>No se encontraron ventas</p>
                   </td>
@@ -164,13 +174,13 @@ export default function SalesPage() {
                   const status = statusConfig[sale.status];
                   const StatusIcon = status.icon;
                   return (
-                    <tr key={sale.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs font-medium text-purple-600">{sale.id}</td>
-                      <td className="px-4 py-3 text-zinc-500">{sale.date}</td>
-                      <td className="px-4 py-3 font-medium text-zinc-700">{sale.customer}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500">{sale.items}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-zinc-900">${sale.total.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-zinc-500">{sale.paymentMethod}</td>
+                    <tr key={sale.id} className="hover:bg-sand/5 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs font-medium text-purple-600">{sale.id.slice(0, 8)}</td>
+                      <td className="px-4 py-3 text-espresso-light">{sale.date}</td>
+                      <td className="px-4 py-3 font-medium text-espresso">{sale.customer}</td>
+                      <td className="px-4 py-3 text-right text-espresso-light">{sale.items}</td>
+                      <td className="px-4 py-3 text-right font-mono font-semibold text-espresso">${sale.total.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-espresso-light">{sale.paymentMethod}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
                           <StatusIcon className="size-3" />
@@ -178,10 +188,13 @@ export default function SalesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 transition-colors">
+                        <Link
+                          href={`/sales/${sale.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg bg-sand/30 px-2 py-1 text-xs text-espresso-light hover:bg-sand/50 transition-colors"
+                        >
                           <Eye className="size-3" />
                           Ver
-                        </button>
+                        </Link>
                       </td>
                     </tr>
                   );
