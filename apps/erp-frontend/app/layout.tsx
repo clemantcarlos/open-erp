@@ -1,15 +1,29 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { DM_Serif_Display, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const montserrat = Montserrat({
-  variable: "--font-sans",
+const dmSerif = DM_Serif_Display({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "OpenERP",
-  description: "Open ERP System",
+  description: "Sistema de gestión empresarial",
 };
 
 export default function RootLayout({
@@ -18,8 +32,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${montserrat.variable} w-full h-full antialiased bg-zinc-200`}>
-      <body className="w-full font-sans" suppressHydrationWarning>{children}</body>
+    <html
+      lang="es"
+      className={`${dmSerif.variable} ${inter.variable} ${jetbrains.variable} w-full h-full antialiased`}
+    >
+      <body className="w-full font-sans grain" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,76 +27,103 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Invalid credentials");
+        setError(data.error ?? "Credenciales inválidas");
         return;
       }
 
-      // Store tokens for backend API calls
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       router.push("/");
     } catch {
-      setError("Could not reach the server");
+      setError("No se pudo conectar al servidor");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen">
-      <div className="hidden w-1/2 bg-zinc-900 lg:flex lg:flex-col lg:items-center lg:justify-center">
-        <div className="flex flex-col items-center gap-6 px-12 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-white/10">
-            <svg className="size-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-            </svg>
+    <div className="flex min-h-screen bg-cream">
+      {/* Left panel — brand */}
+      <div className="hidden w-1/2 bg-espresso lg:flex lg:flex-col lg:items-center lg:justify-center relative overflow-hidden">
+        {/* Decorative grain on dark */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundSize: "256px 256px",
+        }} />
+        <div className="relative flex flex-col items-center gap-6 px-12 text-center">
+          <div className="flex size-16 items-center justify-center rounded-2xl border border-cream/10 bg-cream/5">
+            <span className="font-display text-2xl text-cream">OE</span>
           </div>
-          <h1 className="text-3xl font-semibold text-white">OpenERP</h1>
-          <p className="max-w-sm text-zinc-400">
-            Streamline your business operations with our comprehensive ERP solution.
+          <h1 className="font-display text-4xl text-cream">OpenERP</h1>
+          <p className="max-w-sm text-cream/50 text-base leading-relaxed">
+            Gestión empresarial simple, directa, y completa.
           </p>
+          <div className="mt-8 flex items-center gap-3">
+            <div className="h-px w-12 bg-cream/20" />
+            <span className="font-mono text-[10px] tracking-widest text-cream/30 uppercase">Sistema de gestión</span>
+            <div className="h-px w-12 bg-cream/20" />
+          </div>
         </div>
       </div>
 
+      {/* Right panel — form */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-900">
-              <svg className="size-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-              </svg>
+          {/* Mobile brand */}
+          <div className="mb-10 flex items-center gap-3 lg:hidden">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-espresso">
+              <span className="font-display text-sm text-cream">OE</span>
             </div>
-            <span className="text-xl font-semibold">OpenERP</span>
+            <span className="font-display text-xl text-espresso">OpenERP</span>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Enter your credentials to access your account
+          <h2 className="font-display text-3xl text-espresso">Bienvenido</h2>
+          <p className="mt-2 text-sm text-espresso-light/60">
+            Ingresá tus credenciales para continuar
           </p>
 
           <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
             {error && (
-              <p className="text-sm text-destructive">{error}</p>
+              <div className="rounded-lg border border-terracotta/20 bg-terracotta/5 px-3 py-2 text-sm text-terracotta">
+                {error}
+              </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="email">Email</label>
-              <Input id="email" name="email" type="email" placeholder="you@company.com" required />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-espresso" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="tu@empresa.com"
+                required
+                className="w-full rounded-lg border border-sand bg-white px-3 py-2.5 text-sm text-espresso outline-none transition-colors placeholder:text-espresso-light/40 focus:border-terracotta focus:ring-1 focus:ring-terracotta/30"
+              />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium" htmlFor="password">Password</label>
-                <a href="#" className="text-sm text-muted-foreground hover:text-foreground">
-                  Forgot password?
-                </a>
-              </div>
-              <Input id="password" name="password" type="password" placeholder="••••••••" required />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-espresso" htmlFor="password">
+                Contraseña
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                required
+                className="w-full rounded-lg border border-sand bg-white px-3 py-2.5 text-sm text-espresso outline-none transition-colors placeholder:text-espresso-light/40 focus:border-terracotta focus:ring-1 focus:ring-terracotta/30"
+              />
             </div>
 
-            <Button className="w-full" size="lg" disabled={loading} type = "submit">
-              {loading ? "Signing in..." : "Sign in"}
-            </Button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-espresso px-4 py-2.5 text-sm font-medium text-cream transition-all hover:bg-espresso-light disabled:opacity-50 mt-2"
+            >
+              {loading ? "Ingresando..." : "Ingresar"}
+            </button>
           </form>
         </div>
       </div>
