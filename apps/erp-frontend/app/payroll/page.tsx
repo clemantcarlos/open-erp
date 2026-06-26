@@ -1,197 +1,195 @@
 "use client";
 
-import { useState } from "react";
 import {
-  Receipt,
-  Search,
-  ArrowLeft,
-  Plus,
   Users,
-  DollarSign,
+  UserCheck,
   Clock,
-  CheckCircle,
-  Banknote,
+  Calendar,
+  DollarSign,
+  AlertCircle,
+  ChevronRight,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
-  payrollRecords,
   employees,
+  getActiveEmployees,
+  getTodayAttendance,
+  getPendingLeaveRequests,
+  payrollRecords,
   getTotalPayroll,
-  getTotalBonuses,
-  getTotalDeductions,
+  getDepartments,
 } from "@/lib/data/payroll";
 
-const statusConfig = {
-  paid: { label: "Pagado", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
-  pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700", icon: Clock },
-  held: { label: "Retenido", color: "bg-red-100 text-red-700", icon: Banknote },
-};
-
-export default function PayrollPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "held">("all");
-
-  const filtered = payrollRecords.filter((r) => {
-    const matchesSearch =
-      r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      r.id.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
+export default function HRDashboardPage() {
+  const activeEmployees = getActiveEmployees();
+  const todayAttendance = getTodayAttendance();
+  const pendingLeave = getPendingLeaveRequests();
   const totalPayroll = getTotalPayroll(payrollRecords);
-  const totalBonuses = getTotalBonuses(payrollRecords);
-  const totalDeductions = getTotalDeductions(payrollRecords);
-  const pendingCount = payrollRecords.filter((r) => r.status === "pending").length;
+  const departments = getDepartments();
+
+  const presentToday = todayAttendance.filter((a) => a.status === "present" || a.status === "late").length;
+  const absentToday = todayAttendance.filter((a) => a.status === "absent").length;
+
+  const modules = [
+    {
+      name: "Empleados",
+      description: `${activeEmployees.length} empleados activos`,
+      href: "/payroll/employees",
+      icon: Users,
+      color: "text-sage",
+      bg: "bg-sage/10",
+    },
+    {
+      name: "Asistencia",
+      description: `${presentToday} presentes hoy`,
+      href: "/payroll/attendance",
+      icon: Clock,
+      color: "text-rose-600",
+      bg: "bg-rose-100",
+    },
+    {
+      name: "Permisos",
+      description: `${pendingLeave.length} pendientes`,
+      href: "/payroll/leave",
+      icon: Calendar,
+      color: "text-amber-600",
+      bg: "bg-amber-100",
+    },
+    {
+      name: "Nómina",
+      description: `$${totalPayroll.toLocaleString()} este período`,
+      href: "/payroll/payroll",
+      icon: DollarSign,
+      color: "text-rose-600",
+      bg: "bg-rose-100",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-zinc-100">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b bg-white px-6 py-3 shadow-sm">
+    <div className="min-h-screen bg-cream">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-sand bg-cream/80 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex size-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
-          <Receipt className="size-5 text-rose-500" />
-          <h1 className="text-lg font-semibold">Nómina</h1>
+          <Users className="size-5 text-rose-600" />
+          <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Empleados" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-rose-500 px-3 py-2 text-sm font-medium text-white hover:bg-rose-600 transition-colors">
-          <Plus className="size-4" />
-          Generar nómina
-        </button>
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
         {/* Stats */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-sand bg-white p-4">
             <div className="flex items-center gap-2">
-              <Users className="size-4 text-rose-500" />
-              <p className="text-xs text-zinc-500">Empleados</p>
+              <Users className="size-4 text-rose-600" />
+              <p className="text-xs text-espresso-light">Total empleados</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-zinc-900">{employees.length}</p>
+            <p className="mt-1 text-2xl font-bold text-espresso">{employees.length}</p>
+            <p className="text-[10px] text-sage">{activeEmployees.length} activos</p>
           </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-sand bg-white p-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="size-4 text-emerald-500" />
-              <p className="text-xs text-zinc-500">Total nómina</p>
+              <UserCheck className="size-4 text-sage" />
+              <p className="text-xs text-espresso-light">Asistencia hoy</p>
             </div>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">
-              ${totalPayroll.toLocaleString()}
-            </p>
+            <p className="mt-1 text-2xl font-bold text-sage">{presentToday}</p>
+            <p className="text-[10px] text-rose-600">{absentToday} ausentes</p>
           </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-sand bg-white p-4">
             <div className="flex items-center gap-2">
-              <Banknote className="size-4 text-amber-500" />
-              <p className="text-xs text-zinc-500">Bonificaciones</p>
-            </div>
-            <p className="mt-1 text-2xl font-bold text-amber-600">
-              ${totalBonuses.toLocaleString()}
-            </p>
-          </div>
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Clock className="size-4 text-rose-500" />
-              <p className="text-xs text-zinc-500">Pendientes</p>
+              <Calendar className="size-4 text-amber-600" />
+              <p className="text-xs text-espresso-light">Permisos pendientes</p>
             </div>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
-              {pendingCount > 0 && <Clock className="size-4 text-amber-500" />}
+              <p className="text-2xl font-bold text-amber-600">{pendingLeave.length}</p>
+              {pendingLeave.length > 0 && <AlertCircle className="size-4 text-amber-500" />}
             </div>
           </div>
+          <div className="rounded-xl border border-sand bg-white p-4">
+            <div className="flex items-center gap-2">
+              <Briefcase className="size-4 text-rose-600" />
+              <p className="text-xs text-espresso-light">Departamentos</p>
+            </div>
+            <p className="mt-1 text-2xl font-bold text-espresso">{departments.length}</p>
+          </div>
         </div>
 
-        {/* Search + filters */}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-300"
-            />
+        {/* Module cards */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {modules.map((mod) => (
+            <Link
+              key={mod.name}
+              href={mod.href}
+              className="group flex items-center gap-4 rounded-xl border border-sand bg-white p-4 transition-all hover:-translate-y-0.5"
+            >
+              <div className={`flex size-12 items-center justify-center rounded-xl ${mod.bg}`}>
+                <mod.icon className={`size-6 ${mod.color}`} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-espresso group-hover:text-rose-600 transition-colors">
+                  {mod.name}
+                </h3>
+                <p className="text-sm text-espresso-light">{mod.description}</p>
+              </div>
+              <ChevronRight className="size-4 text-espresso-light/50 group-hover:text-rose-600 transition-colors" />
+            </Link>
+          ))}
+        </div>
+
+        {/* Recent activity */}
+        <div className="rounded-xl border border-sand bg-white">
+          <div className="border-b border-sand px-4 py-3">
+            <h2 className="text-sm font-semibold text-espresso">Actividad Reciente</h2>
           </div>
-          <div className="flex gap-1">
-            {(["all", "paid", "pending", "held"] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  statusFilter === status
-                    ? "bg-rose-500 text-white"
-                    : "bg-white text-zinc-600 hover:bg-zinc-100 border"
-                }`}
-              >
-                {status === "all" ? "Todas" : statusConfig[status].label}
-              </button>
+          <div className="divide-y divide-sand">
+            {pendingLeave.map((leave) => (
+              <div key={leave.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="flex size-8 items-center justify-center rounded-full bg-amber-100">
+                  <Calendar className="size-4 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-espresso">
+                    <span className="font-medium">{leave.employeeName}</span> solicitó{" "}
+                    {leave.type === "vacation" ? "vacaciones" : leave.type === "sick" ? "permiso médico" : "permiso personal"}
+                  </p>
+                  <p className="text-xs text-espresso-light">
+                    {leave.startDate} — {leave.days} día{leave.days > 1 ? "s" : ""}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    leave.status === "approved"
+                      ? "bg-sage/10 text-sage"
+                      : leave.status === "pending"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-rose-100 text-rose-600"
+                  }`}
+                >
+                  {leave.status === "approved" ? "Aprobado" : leave.status === "pending" ? "Pendiente" : "Rechazado"}
+                </span>
+              </div>
             ))}
+            {todayAttendance
+              .filter((a) => a.status === "late")
+              .map((att) => (
+                <div key={att.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-amber-100">
+                    <Clock className="size-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-espresso">
+                      <span className="font-medium">{att.employeeName}</span> llegó tarde
+                    </p>
+                    <p className="text-xs text-espresso-light">
+                      Entrada: {att.clockIn} — {att.hoursWorked}h trabajadas
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    Tarde
+                  </span>
+                </div>
+              ))}
           </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-zinc-50 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                <th className="px-4 py-3">ID</th>
-                <th className="px-4 py-3">Empleado</th>
-                <th className="px-4 py-3">Período</th>
-                <th className="px-4 py-3 text-right">Salario</th>
-                <th className="px-4 py-3 text-right">Bonos</th>
-                <th className="px-4 py-3 text-right">Deducciones</th>
-                <th className="px-4 py-3 text-right">Neto</th>
-                <th className="px-4 py-3 text-center">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
-                    <Receipt className="mx-auto mb-2 size-8" />
-                    <p>No se encontraron registros</p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((record) => {
-                  const status = statusConfig[record.status];
-                  const StatusIcon = status.icon;
-                  return (
-                    <tr key={record.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs font-medium text-rose-500">
-                        {record.id}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-zinc-700">
-                        {record.employeeName}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-500">{record.period}</td>
-                      <td className="px-4 py-3 text-right text-zinc-500">
-                        ${record.baseSalary.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right text-emerald-600">
-                        {record.bonuses > 0 ? `+$${record.bonuses.toLocaleString()}` : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-red-500">
-                        -${(record.deductions + record.tax).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-zinc-900">
-                        ${record.netPay.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
-                          <StatusIcon className="size-3" />
-                          {status.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
