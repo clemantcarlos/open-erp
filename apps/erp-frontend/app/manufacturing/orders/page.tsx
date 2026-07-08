@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Factory,
   Search,
@@ -13,7 +13,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { productionOrders } from "@/lib/data/manufacturing";
+
+interface ProductionOrder {
+  id: string;
+  compositeProductName: string;
+  quantityPlanned: number;
+  quantityProduced: number;
+  scheduledDate: string;
+  status: "planned" | "in_progress" | "completed" | "cancelled";
+  notes: string;
+}
 
 const statusConfig = {
   planned: { label: "Planificada", color: "bg-violet-600/10 text-violet-600", icon: Clock },
@@ -23,10 +32,36 @@ const statusConfig = {
 };
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "planned" | "in_progress" | "completed" | "cancelled">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
 
-  const filtered = productionOrders.filter((o) => {
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/manufacturing/orders?page=${page}&limit=20`)
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setMeta(data?.meta ?? { total: items.length, totalPages: 1 });
+        setOrders(items.map((o: any) => ({
+          id: o.id,
+          compositeProductName: o.compositeProductName || o.name || "",
+          quantityPlanned: o.quantityPlanned || o.quantity || 0,
+          quantityProduced: o.quantityProduced || 0,
+          scheduledDate: o.scheduledDate ? new Date(o.scheduledDate).toISOString().split("T")[0] : "",
+          status: o.status,
+          notes: o.notes || "",
+        })));
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [page]);
+
+  const filtered = orders.filter((o) => {
     const matchesSearch =
       o.compositeProductName.toLowerCase().includes(search.toLowerCase()) ||
       o.id.toLowerCase().includes(search.toLowerCase());
@@ -34,10 +69,29 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const activeOrders = productionOrders.filter(
+  const activeOrders = orders.filter(
     (o) => o.status === "planned" || o.status === "in_progress"
   ).length;
-  const completedOrders = productionOrders.filter((o) => o.status === "completed").length;
+  const completedOrders = orders.filter((o) => o.status === "completed").length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando órdenes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4">
+        <p className="text-rose-600">Error al cargar datos</p>
+        <button onClick={() => window.location.reload()} className="rounded-lg border border-sand bg-white px-4 py-2 text-sm font-medium text-espresso hover:bg-cream transition-colors">
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -46,10 +100,10 @@ export default function OrdersPage() {
           <Factory className="size-5 text-violet-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Fabricación", href: "/manufacturing" }, { label: "Órdenes" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors">
+        <Link href="/manufacturing/orders/new" className="flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors">
           <Plus className="size-4" />
           Nueva orden
-        </button>
+        </Link>
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
@@ -68,7 +122,7 @@ export default function OrdersPage() {
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Total</p>
-            <p className="mt-1 text-2xl font-bold text-espresso font-mono">{productionOrders.length}</p>
+            <p className="mt-1 text-2xl font-bold text-espresso font-mono">{orders.length}</p>
           </div>
         </div>
 
@@ -173,6 +227,30 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
+
+        {meta.totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-xs text-espresso-light">
+              Página {page} de {meta.totalPages} ({meta.total} total)
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border border-sand bg-white px-3 py-1.5 text-xs font-medium text-espresso disabled:opacity-40 hover:bg-cream transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
+                disabled={page >= meta.totalPages}
+                className="rounded-lg border border-sand bg-white px-3 py-1.5 text-xs font-medium text-espresso disabled:opacity-40 hover:bg-cream transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
