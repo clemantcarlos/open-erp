@@ -1,36 +1,43 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
-import { Public } from '@/modules/auth/common/decorators/public.decorator';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { Roles } from '../auth/common/decorators/roles.decorator';
 
+@ApiTags('products')
+@ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Public()
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('search') search?: string, @Query('category') category?: string) {
+    return this.productsService.findAll({ page: page ? +page : 1, limit: limit ? +limit : 20, search, category });
   }
 
-  @Public()
+  @Get('stock-summary')
+  getStockSummary() {
+    return this.productsService.getStockSummary();
+  }
+
   @Post()
-  create(@Body() data: { sku: string; name: string; category: string; price: number; quantity?: number; unit?: string; minStock?: number }) {
-    return this.productsService.create(data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  create(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
   }
 
-  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
-  @Public()
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Record<string, any>) {
-    return this.productsService.update(id, data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
   }
 
-  @Public()
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);

@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import * as crypto from 'crypto';
 import type { Request } from 'express';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
 export class AtGuard extends AuthGuard('jwt') {
