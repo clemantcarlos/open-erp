@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+.git
+*.md
+.env
+.env.*
+!.env.example
+.opencode
+MASTER_TODO.md
+PROTECTED_ROUTES.md
+MONOREPO_STRUCTURE.txt
+MVP.md
+docker-compose.yml
