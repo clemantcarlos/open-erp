@@ -108,7 +108,7 @@ export default function NewVisitPage() {
     <div className="min-h-screen bg-cream">
       <header className="sticky top-0 z-50 flex items-center gap-3 border-b border-sand bg-cream/80 backdrop-blur-sm px-6 py-3">
         <MapPin className="size-5 text-teal-600" />
-        <h1 className="font-display text-lg text-espresso">Agendar visita</h1>
+        <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Visitas", href: "/crm/visits" }, { label: "Nueva" }]} />
       </header>
 
       <div className="mx-auto max-w-2xl px-6 py-6">

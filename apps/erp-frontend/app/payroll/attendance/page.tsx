@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock,
   Search,
@@ -10,7 +10,16 @@ import {
   MinusCircle,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { attendanceRecords } from "@/lib/data/payroll";
+
+interface AttendanceRecord {
+  id: string;
+  employeeName: string;
+  date: string;
+  checkIn: string;
+  checkOut: string | null;
+  hours: number;
+  status: "present" | "absent" | "late" | "half_day";
+}
 
 const statusConfig = {
   present: { label: "Presente", color: "bg-sage/10 text-sage", icon: CheckCircle },
@@ -19,19 +28,40 @@ const statusConfig = {
   half_day: { label: "Medio día", color: "bg-sage/10 text-sage", icon: MinusCircle },
 };
 
-const dates = ["2026-06-23", "2026-06-22"];
-
 export default function AttendancePage() {
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState("2026-06-23");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = attendanceRecords.filter((r) => {
+  useEffect(() => {
+    fetch("/api/payroll/attendance")
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setRecords(items.map((r: any) => ({
+          id: r.id,
+          employeeName: r.employeeName || r.employee?.name || "",
+          date: r.date ? new Date(r.date).toISOString().split("T")[0] : "",
+          checkIn: r.clockIn || "",
+          checkOut: r.clockOut || null,
+          hours: Number(r.hoursWorked) || 0,
+          status: r.status || "present",
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const dates = [...new Set(records.map(r => r.date))].sort().reverse();
+
+  const filtered = records.filter((r) => {
     const matchesSearch = r.employeeName.toLowerCase().includes(search.toLowerCase());
     const matchesDate = r.date === selectedDate;
     return matchesSearch && matchesDate;
   });
 
-  const dateRecords = attendanceRecords.filter((r) => r.date === selectedDate);
+  const dateRecords = records.filter((r) => r.date === selectedDate);
   const present = dateRecords.filter((r) => r.status === "present").length;
   const late = dateRecords.filter((r) => r.status === "late").length;
   const absent = dateRecords.filter((r) => r.status === "absent").length;
@@ -138,13 +168,13 @@ export default function AttendancePage() {
                         {record.employeeName}
                       </td>
                       <td className="px-4 py-3 text-center text-espresso-light font-mono text-xs">
-                        {record.clockIn || "—"}
+                        {record.checkIn || "—"}
                       </td>
                       <td className="px-4 py-3 text-center text-espresso-light font-mono text-xs">
-                        {record.clockOut || "—"}
+                        {record.checkOut || "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-medium font-mono text-xs text-espresso">
-                        {record.hoursWorked > 0 ? `${record.hoursWorked}h` : "—"}
+                        {record.hours > 0 ? `${record.hours}h` : "—"}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>

@@ -195,9 +195,26 @@ export default function PurchaseDetailPage() {
         {/* Items */}
         <div className="mt-4 rounded-xl border border-sand bg-white p-6">
           <h2 className="mb-4 text-lg font-semibold text-espresso">Artículos</h2>
-          <pre className="overflow-x-auto rounded-lg bg-cream/50 p-4 font-mono text-sm text-espresso whitespace-pre-wrap">
-            {JSON.stringify(purchase.items, null, 2)}
-          </pre>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sand bg-cream/50 text-xs font-medium text-espresso-light uppercase">
+                <th className="px-4 py-2 text-left">Producto</th>
+                <th className="px-4 py-2 text-right">Cantidad</th>
+                <th className="px-4 py-2 text-right">Precio</th>
+                <th className="px-4 py-2 text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-sand">
+              {purchase.items.map((item: any, i: number) => (
+                <tr key={i}>
+                  <td className="px-4 py-2 font-medium">{item.name}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs">{item.quantity}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs">${Number(item.price).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs font-semibold">${Number(item.subtotal || item.quantity * item.price).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

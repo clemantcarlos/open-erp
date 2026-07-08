@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 
 interface Sale {
@@ -42,7 +43,8 @@ export default function SalesPage() {
     fetch("/api/sales")
       .then((res) => res.json())
       .then((data) => {
-        setSales(data.map((s: any) => ({
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setSales(items.map((s: any) => ({
           id: s.id,
           date: new Date(s.date).toISOString().split("T")[0],
           customer: s.customer || "Cliente general",
@@ -87,10 +89,10 @@ export default function SalesPage() {
           <TrendingUp className="size-5 text-purple-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Ventas" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
+        <Link href="/pos" className="flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
           <Plus className="size-4" />
           Nueva venta
-        </button>
+        </Link>
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-6">
@@ -102,7 +104,7 @@ export default function SalesPage() {
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Ingreso hoy</p>
-            <p className="mt-1 font-mono text-2xl font-bold text-purple-600">${todayRevenue.toFixed(2)}</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-purple-600">{formatCurrency(todayRevenue)}</p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Pendientes</p>
@@ -113,7 +115,7 @@ export default function SalesPage() {
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Ingreso mensual</p>
-            <p className="mt-1 font-mono text-2xl font-bold text-espresso">${monthlyRevenue.toFixed(2)}</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-espresso">{formatCurrency(monthlyRevenue)}</p>
           </div>
         </div>
 
@@ -179,7 +181,7 @@ export default function SalesPage() {
                       <td className="px-4 py-3 text-espresso-light">{sale.date}</td>
                       <td className="px-4 py-3 font-medium text-espresso">{sale.customer}</td>
                       <td className="px-4 py-3 text-right text-espresso-light">{sale.items}</td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-espresso">${sale.total.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-mono font-semibold text-espresso">{formatCurrency(sale.total)}</td>
                       <td className="px-4 py-3 text-espresso-light">{sale.paymentMethod}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>

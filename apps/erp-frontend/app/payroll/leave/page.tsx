@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   Search,
@@ -11,7 +11,16 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { leaveRequests } from "@/lib/data/payroll";
+
+interface LeaveRequest {
+  id: string;
+  employeeName: string;
+  type: "vacation" | "sick" | "personal" | "maternity" | "unpaid";
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: "approved" | "pending" | "rejected";
+}
 
 const statusConfig = {
   approved: { label: "Aprobado", color: "bg-sage/10 text-sage", icon: CheckCircle },
@@ -28,8 +37,29 @@ const typeConfig = {
 };
 
 export default function LeavePage() {
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending" | "rejected">("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/payroll/leave")
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setLeaveRequests(items.map((r: any) => ({
+          id: r.id,
+          employeeName: r.employeeName || r.employee?.name || "",
+          type: r.type || "personal",
+          startDate: r.startDate ? new Date(r.startDate).toISOString().split("T")[0] : "",
+          endDate: r.endDate ? new Date(r.endDate).toISOString().split("T")[0] : "",
+          reason: r.reason || "",
+          status: r.status || "pending",
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const filtered = leaveRequests.filter((r) => {
     const matchesSearch = r.employeeName.toLowerCase().includes(search.toLowerCase());
@@ -39,7 +69,11 @@ export default function LeavePage() {
 
   const pendingCount = leaveRequests.filter((r) => r.status === "pending").length;
   const approvedCount = leaveRequests.filter((r) => r.status === "approved").length;
-  const totalDays = leaveRequests.filter((r) => r.status === "approved").reduce((sum, r) => sum + r.days, 0);
+  const totalDays = leaveRequests.filter((r) => r.status === "approved").reduce((sum, r) => {
+    if (!r.startDate || !r.endDate) return sum;
+    const diff = (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) / 86400000;
+    return sum + (diff > 0 ? diff + 1 : 1);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -48,7 +82,7 @@ export default function LeavePage() {
           <Calendar className="size-5 text-rose-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Empleados", href: "/payroll" }, { label: "Permisos" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
+        <button onClick={() => alert("Próximamente")} className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
           <Plus className="size-4" />
           Solicitar permiso
         </button>
@@ -157,7 +191,11 @@ export default function LeavePage() {
                         {request.startDate !== request.endDate && ` — ${request.endDate}`}
                       </td>
                       <td className="px-4 py-3 text-center font-medium font-mono text-xs text-espresso">
-                        {request.days}
+                        {(() => {
+                          if (!request.startDate || !request.endDate) return "—";
+                          const diff = (new Date(request.endDate).getTime() - new Date(request.startDate).getTime()) / 86400000;
+                          return diff > 0 ? diff + 1 : 1;
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-espresso-light max-w-[200px] truncate">
                         {request.reason}

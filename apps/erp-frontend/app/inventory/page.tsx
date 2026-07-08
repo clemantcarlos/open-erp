@@ -9,9 +9,11 @@ import {
   ArrowUpDown,
   Filter,
   Eye,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { formatCurrency } from "@/lib/format";
 
 interface Product {
   id: string;
@@ -41,13 +43,18 @@ export default function InventarioPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({ sku: "", name: "", category: "Bebidas", price: "", quantity: "0", unit: "pieza", minStock: "0" });
 
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
-        setProducts(data.map((p: any) => ({ ...p, price: Number(p.price) })));
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setProducts(items.map((p: any) => ({ ...p, price: Number(p.price) })));
         setLoading(false);
+        console.log(data)
       })
       .catch(() => setLoading(false));
   }, []);
@@ -80,6 +87,27 @@ export default function InventarioPage() {
   const outOfStockCount = products.filter((p) => p.quantity === 0).length;
   const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, price: Number(form.price), quantity: Number(form.quantity), minStock: Number(form.minStock) }),
+      });
+      if (!res.ok) throw new Error();
+      const created = await res.json();
+      setProducts((prev) => [...prev, { ...created, price: Number(created.price) }]);
+      setDrawerOpen(false);
+      setForm({ sku: "", name: "", category: "Bebidas", price: "", quantity: "0", unit: "pieza", minStock: "0" });
+    } catch {
+      window.alert("Error al crear producto");
+    } finally {
+      setCreating(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -95,7 +123,10 @@ export default function InventarioPage() {
           <Package className="size-5 text-sky-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Inventario" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
+        >
           <Plus className="size-4" />
           Agregar producto
         </button>
@@ -109,7 +140,7 @@ export default function InventarioPage() {
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Valor en inventario</p>
-            <p className="mt-1 text-2xl font-bold font-mono text-espresso">${totalValue.toFixed(2)}</p>
+            <p className="mt-1 text-2xl font-bold font-mono text-espresso">{formatCurrency(totalValue)}</p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Stock bajo</p>
@@ -211,7 +242,7 @@ export default function InventarioPage() {
                         </span>
                         <span className="text-espresso-light ml-1 text-xs">{product.unit}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-medium text-espresso">${product.price.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-mono font-medium text-espresso">{formatCurrency(product.price)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>
                           {status.label}
@@ -234,6 +265,67 @@ export default function InventarioPage() {
           </table>
         </div>
       </div>
+
+      {/* Create product drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-espresso/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+          <div className="relative w-full max-w-md bg-white shadow-xl">
+            <form onSubmit={handleCreate} className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-sand px-6 py-4">
+                <h2 className="font-display text-lg text-espresso">Nuevo producto</h2>
+                <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-lg p-1.5 text-espresso-light hover:bg-sand/30 transition-colors">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-espresso-light mb-1">SKU</label>
+                  <input required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-espresso-light mb-1">Nombre</label>
+                  <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-espresso-light mb-1">Categoría</label>
+                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30">
+                    {categories.filter((c) => c !== "Todas").map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-espresso-light mb-1">Precio</label>
+                    <input required type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso font-mono outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-espresso-light mb-1">Cantidad</label>
+                    <input type="number" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso font-mono outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-espresso-light mb-1">Unidad</label>
+                    <input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-espresso-light mb-1">Stock mínimo</label>
+                    <input type="number" min="0" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} className="w-full rounded-lg border border-sand bg-cream/50 px-3 py-2 text-sm text-espresso font-mono outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/30" />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-sand px-6 py-4 flex items-center gap-3">
+                <button type="submit" disabled={creating} className="flex-1 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-sky-700 transition-colors disabled:opacity-50">
+                  {creating ? "Creando..." : "Crear producto"}
+                </button>
+                <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-lg border border-sand px-4 py-2.5 text-sm font-medium text-espresso-light hover:bg-sand/30 transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

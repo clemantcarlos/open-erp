@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { formatCurrency } from "@/lib/format";
 
 interface Product {
   id: string;
@@ -42,12 +43,14 @@ export default function POSPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
-        setProducts(data.map((p: any) => ({
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setProducts(items.map((p: any) => ({
           id: p.id,
           name: p.name,
           price: Number(p.price),
@@ -119,15 +122,19 @@ export default function POSPage() {
     };
 
     try {
-      await fetch("/api/sales", {
+      const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saleData),
       });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Error al registrar la venta");
+      }
       clearCart();
       alert("Venta registrada exitosamente");
-    } catch {
-      alert("Error al registrar la venta");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al registrar la venta");
     }
   }
 
@@ -196,7 +203,7 @@ export default function POSPage() {
                     {product.name}
                   </span>
                   <span className="font-mono text-sm font-bold text-amber-600">
-                    ${product.price.toFixed(2)}
+                    {formatCurrency(product.price)}
                   </span>
                 </button>
               ))}
@@ -243,7 +250,7 @@ export default function POSPage() {
                         {item.name}
                       </p>
                       <p className="font-mono text-xs text-espresso-light">
-                        ${item.price.toFixed(2)} c/u
+                        {formatCurrency(item.price)} c/u
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -279,51 +286,46 @@ export default function POSPage() {
             <div className="space-y-1 text-sm">
               <div className="flex justify-between text-espresso-light">
                 <span>Subtotal</span>
-                <span className="font-mono">${subtotal.toFixed(2)}</span>
+                <span className="font-mono">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-espresso-light">
                 <span>IVA (16%)</span>
-                <span className="font-mono">${tax.toFixed(2)}</span>
+                <span className="font-mono">{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between border-t border-sand pt-1 text-lg font-bold text-espresso">
                 <span>Total</span>
-                <span className="font-mono">${total.toFixed(2)}</span>
+                <span className="font-mono">{formatCurrency(total)}</span>
               </div>
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <button
-                disabled={cart.length === 0}
-                onClick={() => handleCheckout("cash")}
-                className="flex flex-col items-center gap-1 rounded-lg border border-sand bg-white py-2 text-xs font-medium text-espresso shadow-sm transition-all hover:bg-sand/30 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Banknote className="size-4" />
-                Efectivo
-              </button>
-              <button
-                disabled={cart.length === 0}
-                onClick={() => handleCheckout("card")}
-                className="flex flex-col items-center gap-1 rounded-lg border border-sand bg-white py-2 text-xs font-medium text-espresso shadow-sm transition-all hover:bg-sand/30 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <CreditCard className="size-4" />
-                Tarjeta
-              </button>
-              <button
-                disabled={cart.length === 0}
-                onClick={() => handleCheckout("movil")}
-                className="flex flex-col items-center gap-1 rounded-lg border border-sand bg-white py-2 text-xs font-medium text-espresso shadow-sm transition-all hover:bg-sand/30 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <QrCode className="size-4" />
-                PagoMóvil
-              </button>
+              {([
+                { method: "cash", icon: Banknote, label: "Efectivo" },
+                { method: "card", icon: CreditCard, label: "Tarjeta" },
+                { method: "movil", icon: QrCode, label: "PagoMóvil" },
+              ] as const).map(({ method, icon: Icon, label }) => (
+                <button
+                  key={method}
+                  disabled={cart.length === 0}
+                  onClick={() => setPaymentMethod(method)}
+                  className={`flex flex-col items-center gap-1 rounded-lg border py-2 text-xs font-medium shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                    paymentMethod === method
+                      ? "border-rose-400 bg-rose-50 text-rose-600"
+                      : "border-sand bg-white text-espresso hover:bg-sand/30"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </button>
+              ))}
             </div>
 
             <button
               disabled={cart.length === 0}
-              onClick={() => handleCheckout("cash")}
+              onClick={() => handleCheckout(paymentMethod)}
               className="mt-2 w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-600 hover:shadow-lg active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Cobrar ${total.toFixed(2)}
+              Cobrar {formatCurrency(total)}
             </button>
           </div>
         </div>

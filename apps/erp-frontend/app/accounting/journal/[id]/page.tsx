@@ -1,5 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
-  Calculator,
   CheckCircle,
   Clock,
   XCircle,
@@ -7,12 +9,22 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import {
-  journalEntries,
-  getJournalTotalDebit,
-  getJournalTotalCredit,
-} from "@/lib/data/accounting";
-import { notFound } from "next/navigation";
+
+interface JournalLine {
+  accountName: string;
+  accountId: string;
+  debit: number;
+  credit: number;
+}
+
+interface JournalEntry {
+  id: string;
+  date: string;
+  description: string;
+  reference: string;
+  status: "posted" | "draft" | "void";
+  lines: JournalLine[];
+}
 
 const statusConfig = {
   posted: { label: "Contabilizado", color: "bg-sage/15 text-sage", icon: CheckCircle },
@@ -20,22 +32,42 @@ const statusConfig = {
   void: { label: "Anulado", color: "bg-red-100 text-red-700", icon: XCircle },
 };
 
-export default async function JournalDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const entry = journalEntries.find((e) => e.id === id);
+export default function JournalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [entry, setEntry] = useState<JournalEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    params.then(({ id }) => {
+      fetch(`/api/accounting/journal/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setEntry(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    });
+  }, [params]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando asiento...</p>
+      </div>
+    );
+  }
 
   if (!entry) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Asiento no encontrado</p>
+      </div>
+    );
   }
 
   const status = statusConfig[entry.status];
   const StatusIcon = status.icon;
-  const totalDebit = getJournalTotalDebit(entry);
-  const totalCredit = getJournalTotalCredit(entry);
+  const totalDebit = (entry.lines || []).reduce((sum, l) => sum + (Number(l.debit) || 0), 0);
+  const totalCredit = (entry.lines || []).reduce((sum, l) => sum + (Number(l.credit) || 0), 0);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -46,12 +78,9 @@ export default async function JournalDetailPage({
             items={[
               { label: "Inicio", href: "/" },
               { label: "Contabilidad", href: "/accounting" },
-              { label: entry.id },
+              { label: entry.id.slice(0, 8) },
             ]}
           />
-        </div>
-        <div className="ml-auto">
-          <p className="text-xs text-espresso-light">{entry.reference}</p>
         </div>
         <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${status.color}`}>
           <StatusIcon className="size-3" />
@@ -95,7 +124,7 @@ export default async function JournalDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-sand">
-              {entry.lines.map((line, i) => (
+              {(entry.lines || []).map((line, i) => (
                 <tr key={i} className="hover:bg-cream/50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-medium text-espresso">{line.accountName}</p>
@@ -103,18 +132,14 @@ export default async function JournalDetailPage({
                   </td>
                   <td className="px-4 py-3 text-right">
                     {line.debit > 0 ? (
-                      <span className="font-mono font-semibold text-espresso">
-                        ${line.debit.toFixed(2)}
-                      </span>
+                      <span className="font-mono font-semibold text-espresso">${Number(line.debit).toFixed(2)}</span>
                     ) : (
                       <span className="text-sand">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {line.credit > 0 ? (
-                      <span className="font-mono font-semibold text-espresso">
-                        ${line.credit.toFixed(2)}
-                      </span>
+                      <span className="font-mono font-semibold text-espresso">${Number(line.credit).toFixed(2)}</span>
                     ) : (
                       <span className="text-sand">—</span>
                     )}
@@ -125,12 +150,8 @@ export default async function JournalDetailPage({
             <tfoot>
               <tr className="border-t-2 border-sand bg-cream/50 font-semibold">
                 <td className="px-4 py-3 text-espresso">Totales</td>
-                <td className="px-4 py-3 text-right font-mono text-indigo-600">
-                  ${totalDebit.toFixed(2)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono text-indigo-600">
-                  ${totalCredit.toFixed(2)}
-                </td>
+                <td className="px-4 py-3 text-right font-mono text-indigo-600">${totalDebit.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right font-mono text-indigo-600">${totalCredit.toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>
@@ -139,7 +160,7 @@ export default async function JournalDetailPage({
           <div className="border-t border-sand px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-espresso-light">¿Está balanceado?</span>
-              {totalDebit === totalCredit ? (
+              {Math.abs(totalDebit - totalCredit) < 0.01 ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-sage/15 px-3 py-1 text-xs font-medium text-sage">
                   <CheckCircle className="size-3" />
                   Sí — Debe = Haber

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users,
   Search,
@@ -12,7 +12,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { employees, getDepartments } from "@/lib/data/payroll";
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  position: string;
+  department: string;
+  status: "active" | "on_leave" | "terminated";
+}
 
 const statusConfig = {
   active: { label: "Activo", color: "bg-sage/10 text-sage" },
@@ -21,9 +30,34 @@ const statusConfig = {
 };
 
 export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("Todos");
-  const departments = ["Todos", ...getDepartments()];
+  const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", position: "", department: "", salary: 0 });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/payroll/employees")
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setEmployees(items.map((e: any) => ({
+          id: e.id,
+          name: e.name,
+          email: e.email || "",
+          phone: e.phone || "",
+          position: e.position || "",
+          department: e.department || "",
+          status: e.status || "active",
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const departments = ["Todos", ...new Set(employees.map(e => e.department).filter(Boolean))];
 
   const filtered = employees.filter((e) => {
     const matchesSearch =
@@ -41,7 +75,7 @@ export default function EmployeesPage() {
           <Users className="size-5 text-rose-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Empleados", href: "/payroll" }, { label: "Directorio" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
+        <button onClick={() => alert("Próximamente")} className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
           <Plus className="size-4" />
           Nuevo empleado
         </button>
@@ -89,7 +123,9 @@ export default function EmployeesPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{employee.avatar}</span>
+                    <span className="flex size-10 items-center justify-center rounded-full bg-rose-100 text-sm font-bold text-rose-600">
+                      {employee.name.charAt(0)}
+                    </span>
                     <div>
                       <h3 className="font-semibold text-espresso group-hover:text-rose-600 transition-colors">
                         {employee.name}
@@ -119,7 +155,7 @@ export default function EmployeesPage() {
 
                 <div className="mt-3 flex items-center justify-between border-t border-sand pt-3">
                   <span className="text-xs text-espresso-light">
-                    Desde {employee.hireDate}
+                    {employee.department}
                   </span>
                   <ChevronRight className="size-4 text-espresso-light/50 group-hover:text-rose-600 transition-colors" />
                 </div>

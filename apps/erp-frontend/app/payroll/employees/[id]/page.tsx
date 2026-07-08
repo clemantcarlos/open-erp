@@ -1,15 +1,34 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Mail,
   Phone,
   MapPin,
-  Calendar,
   Heart,
   AlertCircle,
-  DollarSign,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { employees, payrollRecords } from "@/lib/data/payroll";
-import { notFound } from "next/navigation";
+
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  position: string;
+  department: string;
+  salary: number;
+  hireDate: string;
+  address: string;
+  birthDate: string;
+  bloodType: string;
+  emergencyContact: string;
+  emergencyPhone: string;
+  status: "active" | "on_leave" | "terminated";
+}
 
 const statusConfig = {
   active: { label: "Activo", color: "bg-sage/10 text-sage" },
@@ -17,21 +36,48 @@ const statusConfig = {
   terminated: { label: "Inactivo", color: "bg-rose-600/10 text-rose-600" },
 };
 
-export default async function EmployeeDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const employee = employees.find((e) => e.id === id);
+export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [employeeId, setEmployeeId] = useState<string>("");
+  const router = useRouter();
+
+  useEffect(() => {
+    params.then(({ id }) => {
+      setEmployeeId(id);
+      fetch(`/api/payroll/employees/${id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setEmployee(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    });
+  }, [params]);
+
+  async function handleDelete() {
+    if (!confirm("¿Eliminar este empleado?")) return;
+    await fetch(`/api/payroll/employees/${employeeId}`, { method: "DELETE" });
+    router.push("/payroll/employees");
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando empleado...</p>
+      </div>
+    );
+  }
 
   if (!employee) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Empleado no encontrado</p>
+      </div>
+    );
   }
 
   const status = statusConfig[employee.status];
-  const employeePayroll = payrollRecords.filter((r) => r.employeeId === employee.id);
-  const lastPayroll = employeePayroll[0];
 
   return (
     <div className="min-h-screen bg-cream">
@@ -46,15 +92,23 @@ export default async function EmployeeDetailPage({
             ]}
           />
         </div>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-3xl">{employee.avatar}</span>
-          <div>
-            <p className="text-xs text-espresso-light">{employee.position}</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.color}`}>
+            {status.label}
+          </span>
+          <button
+            onClick={() => router.push("/payroll/employees")}
+            className="rounded-lg bg-sand/50 p-1.5 text-espresso-light hover:bg-sand transition-colors"
+          >
+            <Pencil className="size-4" />
+          </button>
+          <button
+            onClick={handleDelete}
+            className="rounded-lg bg-rose-600/10 p-1.5 text-rose-600 hover:bg-rose-600/20 transition-colors"
+          >
+            <Trash2 className="size-4" />
+          </button>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${status.color}`}>
-          {status.label}
-        </span>
       </header>
 
       <div className="mx-auto max-w-4xl px-6 py-6">
@@ -66,15 +120,15 @@ export default async function EmployeeDetailPage({
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Salario</p>
-            <p className="mt-1 text-sm font-bold font-mono text-rose-600">${employee.salary.toLocaleString()}</p>
+            <p className="mt-1 text-sm font-bold font-mono text-rose-600">${employee.salary?.toLocaleString()}</p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
             <p className="text-xs text-espresso-light">Fecha de ingreso</p>
             <p className="mt-1 text-sm font-semibold text-espresso">{employee.hireDate}</p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
-            <p className="text-xs text-espresso-light">Tipo de sangre</p>
-            <p className="mt-1 text-sm font-semibold text-espresso">{employee.bloodType}</p>
+            <p className="text-xs text-espresso-light">Posición</p>
+            <p className="mt-1 text-sm font-semibold text-espresso">{employee.position}</p>
           </div>
         </div>
 
@@ -100,20 +154,15 @@ export default async function EmployeeDetailPage({
                   <p className="text-sm text-espresso">{employee.phone}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3">
-                <MapPin className="size-4 text-espresso-light" />
-                <div>
-                  <p className="text-xs text-espresso-light">Dirección</p>
-                  <p className="text-sm text-espresso">{employee.address}</p>
+              {employee.address && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <MapPin className="size-4 text-espresso-light" />
+                  <div>
+                    <p className="text-xs text-espresso-light">Dirección</p>
+                    <p className="text-sm text-espresso">{employee.address}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Calendar className="size-4 text-espresso-light" />
-                <div>
-                  <p className="text-xs text-espresso-light">Fecha de nacimiento</p>
-                  <p className="text-sm text-espresso">{employee.birthDate}</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -124,41 +173,25 @@ export default async function EmployeeDetailPage({
               <h2 className="text-sm font-semibold text-espresso">Contacto de Emergencia</h2>
             </div>
             <div className="divide-y divide-sand">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Heart className="size-4 text-espresso-light" />
-                <div>
-                  <p className="text-xs text-espresso-light">Nombre</p>
-                  <p className="text-sm text-espresso">{employee.emergencyContact}</p>
+              {employee.emergencyContact && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Heart className="size-4 text-espresso-light" />
+                  <div>
+                    <p className="text-xs text-espresso-light">Nombre</p>
+                    <p className="text-sm text-espresso">{employee.emergencyContact}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Phone className="size-4 text-espresso-light" />
-                <div>
-                  <p className="text-xs text-espresso-light">Teléfono</p>
-                  <p className="text-sm text-espresso">{employee.emergencyPhone}</p>
+              )}
+              {employee.emergencyPhone && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Phone className="size-4 text-espresso-light" />
+                  <div>
+                    <p className="text-xs text-espresso-light">Teléfono</p>
+                    <p className="text-sm text-espresso">{employee.emergencyPhone}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Last payroll */}
-            {lastPayroll && (
-              <div className="border-t border-sand px-4 py-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="size-4 text-rose-600" />
-                  <h3 className="text-sm font-semibold text-espresso">Última Nómina</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-xs text-espresso-light">Período</p>
-                    <p className="font-medium text-espresso">{lastPayroll.period}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-espresso-light">Neto</p>
-                    <p className="font-bold font-mono text-rose-600">${lastPayroll.netPay.toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

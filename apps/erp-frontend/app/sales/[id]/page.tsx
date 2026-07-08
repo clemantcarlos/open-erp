@@ -193,9 +193,26 @@ export default function SaleDetailPage() {
           <div className="border-b border-sand px-4 py-3">
             <h2 className="text-sm font-semibold text-espresso">Artículos</h2>
           </div>
-          <pre className="p-4 font-mono text-sm text-espresso overflow-x-auto">
-            {JSON.stringify(sale.items, null, 2)}
-          </pre>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sand bg-cream/50 text-xs font-medium text-espresso-light uppercase">
+                <th className="px-4 py-2 text-left">Producto</th>
+                <th className="px-4 py-2 text-right">Cantidad</th>
+                <th className="px-4 py-2 text-right">Precio</th>
+                <th className="px-4 py-2 text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-sand">
+              {sale.items.map((item, i) => (
+                <tr key={i}>
+                  <td className="px-4 py-2 font-medium">{item.name}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs">{item.quantity}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs">${Number(item.price).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-xs font-semibold">${Number(item.quantity * item.price).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

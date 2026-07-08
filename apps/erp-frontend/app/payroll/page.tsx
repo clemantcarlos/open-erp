@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Users,
   UserCheck,
@@ -12,25 +13,95 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import {
-  employees,
-  getActiveEmployees,
-  getTodayAttendance,
-  getPendingLeaveRequests,
-  payrollRecords,
-  getTotalPayroll,
-  getDepartments,
-} from "@/lib/data/payroll";
+
+interface Employee {
+  id: string;
+  name: string;
+  department: string;
+  status: string;
+}
+
+interface Attendance {
+  id: string;
+  employeeName: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  hours: number;
+  status: string;
+}
+
+interface LeaveRequest {
+  id: string;
+  employeeName: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
+interface PayrollRecord {
+  id: string;
+  netPay: number;
+}
 
 export default function HRDashboardPage() {
-  const activeEmployees = getActiveEmployees();
-  const todayAttendance = getTodayAttendance();
-  const pendingLeave = getPendingLeaveRequests();
-  const totalPayroll = getTotalPayroll(payrollRecords);
-  const departments = getDepartments();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [payrollRecords, setPayrollRecords] = useState<PayrollRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/payroll/employees").then((r) => r.json()),
+      fetch("/api/payroll/attendance").then((r) => r.json()),
+      fetch("/api/payroll/leave").then((r) => r.json()),
+      fetch("/api/payroll/records").then((r) => r.json()),
+    ]).then(([empData, attData, leaveData, payrollData]) => {
+      const emps = Array.isArray(empData) ? empData : (empData?.data ?? []);
+      const atts = Array.isArray(attData) ? attData : (attData?.data ?? []);
+      const leaves = Array.isArray(leaveData) ? leaveData : (leaveData?.data ?? []);
+      const pays = Array.isArray(payrollData) ? payrollData : (payrollData?.data ?? []);
+      setEmployees(emps.map((e: any) => ({ id: e.id, name: e.name, department: e.department || "", status: e.status || "active" })));
+      setAttendance(atts.map((a: any) => ({
+        id: a.id,
+        employeeName: a.employeeName || a.employee?.name || "",
+        date: a.date ? new Date(a.date).toISOString().split("T")[0] : "",
+        checkIn: a.checkIn || null,
+        checkOut: a.checkOut || null,
+        hours: Number(a.hours) || 0,
+        status: a.status || "present",
+      })));
+      setLeaveRequests(leaves.map((l: any) => ({
+        id: l.id,
+        employeeName: l.employeeName || l.employee?.name || "",
+        type: l.type || "personal",
+        startDate: l.startDate ? new Date(l.startDate).toISOString().split("T")[0] : "",
+        endDate: l.endDate ? new Date(l.endDate).toISOString().split("T")[0] : "",
+        status: l.status || "pending",
+      })));
+      setPayrollRecords(pays.map((p: any) => ({ id: p.id, netPay: Number(p.netPay) || 0 })));
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const activeEmployees = employees.filter((e) => e.status === "active");
+  const today = new Date().toISOString().split("T")[0];
+  const todayAttendance = attendance.filter((a) => a.date === today);
   const presentToday = todayAttendance.filter((a) => a.status === "present" || a.status === "late").length;
   const absentToday = todayAttendance.filter((a) => a.status === "absent").length;
+  const pendingLeave = leaveRequests.filter((l) => l.status === "pending");
+  const totalPayroll = payrollRecords.reduce((sum, r) => sum + Number(r.netPay), 0);
+  const departments = [...new Set(employees.map((e) => e.department))];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando empleados...</p>
+      </div>
+    );
+  }
 
   const modules = [
     {
@@ -153,7 +224,12 @@ export default function HRDashboardPage() {
                     {leave.type === "vacation" ? "vacaciones" : leave.type === "sick" ? "permiso médico" : "permiso personal"}
                   </p>
                   <p className="text-xs text-espresso-light">
-                    {leave.startDate} — {leave.days} día{leave.days > 1 ? "s" : ""}
+                    {leave.startDate} — {(() => {
+                      if (!leave.startDate || !leave.endDate) return "—";
+                      const diff = (new Date(leave.endDate).getTime() - new Date(leave.startDate).getTime()) / 86400000;
+                      const days = diff > 0 ? diff + 1 : 1;
+                      return `${days} día${days > 1 ? "s" : ""}`;
+                    })()}
                   </p>
                 </div>
                 <span
@@ -181,7 +257,7 @@ export default function HRDashboardPage() {
                       <span className="font-medium">{att.employeeName}</span> llegó tarde
                     </p>
                     <p className="text-xs text-espresso-light">
-                      Entrada: {att.clockIn} — {att.hoursWorked}h trabajadas
+                      Entrada: {att.checkIn} — {att.hours}h trabajadas
                     </p>
                   </div>
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">

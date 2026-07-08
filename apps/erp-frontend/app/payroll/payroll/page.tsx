@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Receipt,
   Search,
@@ -11,12 +11,18 @@ import {
   Banknote,
 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import {
-  payrollRecords,
-  getTotalPayroll,
-  getTotalBonuses,
-  getTotalDeductions,
-} from "@/lib/data/payroll";
+import { formatCurrency } from "@/lib/format";
+
+interface PayrollRecord {
+  id: string;
+  employeeName: string;
+  period: string;
+  baseSalary: number;
+  bonuses: number;
+  deductions: number;
+  netPay: number;
+  status: "paid" | "pending" | "held";
+}
 
 const statusConfig = {
   paid: { label: "Pagado", color: "bg-sage/10 text-sage", icon: CheckCircle },
@@ -25,10 +31,36 @@ const statusConfig = {
 };
 
 export default function PayrollRecordsPage() {
+  const [records, setRecords] = useState<PayrollRecord[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "held">("all");
+  const [loading, setLoading] = useState(true);
 
-  const filtered = payrollRecords.filter((r) => {
+  useEffect(() => {
+    fetch("/api/payroll/records")
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setRecords(items.map((r: any) => ({
+          id: r.id,
+          employeeName: r.employeeName || r.employee?.name || "",
+          period: r.period || "",
+          baseSalary: Number(r.baseSalary) || 0,
+          bonuses: Number(r.bonuses) || 0,
+          deductions: Number(r.deductions) || 0,
+          netPay: Number(r.netPay) || 0,
+          status: r.status || "pending",
+        })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const totalPayroll = records.reduce((sum, r) => sum + r.netPay, 0);
+  const totalBonuses = records.reduce((sum, r) => sum + r.bonuses, 0);
+  const totalDeductions = records.reduce((sum, r) => sum + r.deductions, 0);
+
+  const filtered = records.filter((r) => {
     const matchesSearch =
       r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
       r.id.toLowerCase().includes(search.toLowerCase());
@@ -36,10 +68,7 @@ export default function PayrollRecordsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalPayroll = getTotalPayroll(payrollRecords);
-  const totalBonuses = getTotalBonuses(payrollRecords);
-  const totalDeductions = getTotalDeductions(payrollRecords);
-  const pendingCount = payrollRecords.filter((r) => r.status === "pending").length;
+  const pendingCount = records.filter((r) => r.status === "pending").length;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -48,7 +77,7 @@ export default function PayrollRecordsPage() {
           <Receipt className="size-5 text-rose-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "Empleados", href: "/payroll" }, { label: "Nómina" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
+        <button onClick={() => alert("Próximamente")} className="flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors">
           <Plus className="size-4" />
           Generar nómina
         </button>
@@ -63,7 +92,7 @@ export default function PayrollRecordsPage() {
               <p className="text-xs text-espresso-light">Total nómina</p>
             </div>
             <p className="mt-1 text-2xl font-bold font-mono text-sage">
-              ${totalPayroll.toLocaleString()}
+              {formatCurrency(totalPayroll)}
             </p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
@@ -72,7 +101,7 @@ export default function PayrollRecordsPage() {
               <p className="text-xs text-espresso-light">Bonificaciones</p>
             </div>
             <p className="mt-1 text-2xl font-bold font-mono text-amber-600">
-              ${totalBonuses.toLocaleString()}
+              {formatCurrency(totalBonuses)}
             </p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
@@ -81,7 +110,7 @@ export default function PayrollRecordsPage() {
               <p className="text-xs text-espresso-light">Deducciones</p>
             </div>
             <p className="mt-1 text-2xl font-bold font-mono text-rose-600">
-              ${totalDeductions.toLocaleString()}
+              {formatCurrency(totalDeductions)}
             </p>
           </div>
           <div className="rounded-xl border border-sand bg-white p-4">
@@ -162,16 +191,16 @@ export default function PayrollRecordsPage() {
                       </td>
                       <td className="px-4 py-3 text-espresso-light">{record.period}</td>
                       <td className="px-4 py-3 text-right font-mono text-xs text-espresso-light">
-                        ${record.baseSalary.toLocaleString()}
+                        {formatCurrency(record.baseSalary)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs text-sage">
-                        {record.bonuses > 0 ? `+$${record.bonuses.toLocaleString()}` : "—"}
+                        {record.bonuses > 0 ? `+${formatCurrency(record.bonuses)}` : "—"}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs text-rose-600">
-                        -${(record.deductions + record.tax).toLocaleString()}
+                        -{formatCurrency(record.deductions)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs font-semibold text-espresso">
-                        ${record.netPay.toLocaleString()}
+                        {formatCurrency(record.netPay)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${status.color}`}>

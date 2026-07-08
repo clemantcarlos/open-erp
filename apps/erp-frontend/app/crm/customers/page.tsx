@@ -8,6 +8,7 @@ import {
   Star,
   Phone,
   Mail,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -55,6 +56,9 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [segmentFilter, setSegmentFilter] = useState<(typeof segments)[number]>("all");
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", segment: "regular" as Customer["segment"] });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/customers")
@@ -83,6 +87,26 @@ export default function CustomersPage() {
     return matchesSearch && matchesSegment;
   });
 
+  const handleCreate = async () => {
+    if (!form.name) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCustomers(prev => [{ ...data, totalSpent: 0, visits: 0 }, ...prev]);
+        setDrawerOpen(false);
+        setForm({ name: "", email: "", phone: "", segment: "regular" });
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -98,7 +122,7 @@ export default function CustomersPage() {
           <Users className="size-5 text-teal-600" />
           <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Clientes" }]} />
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors">
+        <button onClick={() => setDrawerOpen(true)} className="flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors">
           <Plus className="size-4" />
           Nuevo cliente
         </button>
@@ -194,6 +218,48 @@ export default function CustomersPage() {
           </div>
         )}
       </div>
+
+      {/* Create customer drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-espresso/30 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+          <div className="relative w-full max-w-md bg-cream shadow-xl overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-sand bg-cream px-6 py-4">
+              <h2 className="font-display text-lg text-espresso">Nuevo cliente</h2>
+              <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-lg p-1.5 text-espresso-light hover:bg-sand/30 transition-colors">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="space-y-4 px-6 py-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-espresso-light">Nombre *</label>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-espresso outline-none focus:border-teal-400" placeholder="Nombre completo" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-espresso-light">Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-espresso outline-none focus:border-teal-400" placeholder="correo@ejemplo.com" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-espresso-light">Teléfono</label>
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-espresso outline-none focus:border-teal-400" placeholder="+58 412 1234567" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-espresso-light">Segmento</label>
+                <select value={form.segment} onChange={(e) => setForm({ ...form, segment: e.target.value as Customer["segment"] })} className="w-full rounded-lg border border-sand bg-white px-3 py-2 text-sm text-espresso outline-none focus:border-teal-400">
+                  <option value="regular">Regular</option>
+                  <option value="vip">VIP</option>
+                  <option value="new">Nuevo</option>
+                  <option value="inactive">Inactivo</option>
+                </select>
+              </div>
+            </div>
+            <div className="sticky bottom-0 flex gap-3 border-t border-sand bg-cream px-6 py-4">
+              <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-lg border border-sand px-4 py-2.5 text-sm font-medium text-espresso-light hover:bg-sand/30 transition-colors">Cancelar</button>
+              <button onClick={handleCreate} disabled={saving || !form.name} className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 transition-colors disabled:opacity-50">{saving ? "Guardando..." : "Crear cliente"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

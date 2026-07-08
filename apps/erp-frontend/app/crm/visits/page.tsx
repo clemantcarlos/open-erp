@@ -96,7 +96,7 @@ export default function VisitsPage() {
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-sand bg-cream/80 backdrop-blur-sm px-6 py-3">
         <div className="flex items-center gap-3">
           <MapPin className="size-5 text-teal-600" />
-          <h1 className="font-display text-lg text-espresso">Visitas</h1>
+          <Breadcrumbs items={[{ label: "Inicio", href: "/" }, { label: "CRM", href: "/crm" }, { label: "Visitas" }]} />
         </div>
         <Link
           href="/crm/visits/new"

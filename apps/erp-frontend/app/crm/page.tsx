@@ -1,55 +1,78 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Users,
   UserCheck,
   Star,
   UserPlus,
   ChevronRight,
-  TrendingUp,
-  Phone,
-  Mail,
-  ShoppingBag,
-  StickyNote,
   MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import {
-  customers,
-  getTotalCustomers,
-  getActiveCustomers,
-  getVipCustomers,
-  getNewCustomers,
-  getRecentActivity,
-  getInitials,
-  getAvatarColor,
-  segmentConfig,
-} from "@/lib/data/crm";
-import { getThisWeekVisits } from "@/lib/data/visits";
 
-const activityIcons = {
-  purchase: ShoppingBag,
-  call: Phone,
-  email: Mail,
-  visit: UserCheck,
-  note: StickyNote,
+interface Customer {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  segment: string;
+  createdAt: string;
+}
+
+const avatarColors = [
+  "bg-teal-100 text-teal-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-sky-100 text-sky-700",
+];
+
+const segmentConfig: Record<string, { label: string; color: string }> = {
+  vip: { label: "VIP", color: "bg-amber-100 text-amber-700" },
+  regular: { label: "Regular", color: "bg-teal-100 text-teal-700" },
+  new: { label: "Nuevo", color: "bg-sky-100 text-sky-700" },
+  inactive: { label: "Inactivo", color: "bg-zinc-100 text-zinc-500" },
 };
 
-const activityColors = {
-  purchase: "bg-sage/20 text-sage",
-  call: "bg-teal-600/10 text-teal-600",
-  email: "bg-teal-600/10 text-teal-600",
-  visit: "bg-sage/20 text-sage",
-  note: "bg-sand text-espresso-light",
-};
+function getAvatarColor(id: string) {
+  const index = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % avatarColors.length;
+  return avatarColors[index];
+}
+
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+}
 
 export default function CRMPage() {
-  const total = getTotalCustomers();
-  const active = getActiveCustomers();
-  const vip = getVipCustomers();
-  const newCount = getNewCustomers();
-  const recentActivity = getRecentActivity();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then((data) => {
+        const items = Array.isArray(data) ? data : (data?.data ?? []);
+        setCustomers(items);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const total = customers.length;
+  const active = customers.filter((c) => c.segment !== "inactive").length;
+  const vip = customers.filter((c) => c.segment === "vip").length;
+  const newCount = customers.filter((c) => c.segment === "new").length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-espresso-light">Cargando CRM...</p>
+      </div>
+    );
+  }
 
   const modules = [
     {
@@ -60,7 +83,7 @@ export default function CRMPage() {
     },
     {
       name: "Visitas",
-      description: `${getThisWeekVisits()} esta semana`,
+      description: "Gestión de visitas",
       href: "/crm/visits",
       icon: MapPin,
     },
@@ -133,74 +156,33 @@ export default function CRMPage() {
           ))}
         </div>
 
-        {/* Top customers */}
-        <div className="mb-6 rounded-xl border border-sand bg-white">
-          <div className="border-b border-sand px-4 py-3">
-            <h2 className="text-sm font-semibold text-espresso">Mayor gasto</h2>
-          </div>
-          <div className="divide-y divide-sand">
-            {[...customers]
-              .sort((a, b) => b.totalSpent - a.totalSpent)
-              .slice(0, 5)
-              .map((customer) => {
-                const segment = segmentConfig[customer.segment];
-                return (
-                  <Link
-                    key={customer.id}
-                    href={`/crm/customers/${customer.id}`}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-cream/50 transition-colors"
-                  >
-                    <div
-                      className={`flex size-9 items-center justify-center rounded-full text-xs font-bold ${getAvatarColor(customer.id)}`}
-                    >
-                      {getInitials(customer.name)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-espresso">{customer.name}</p>
-                      <p className="text-xs text-espresso-light">{customer.visits} visitas</p>
-                    </div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${segment.color}`}>
-                      {segment.label}
-                    </span>
-                    <span className="text-sm font-semibold text-espresso font-mono">
-                      ${customer.totalSpent.toLocaleString()}
-                    </span>
-                  </Link>
-                );
-              })}
-          </div>
-        </div>
-
-        {/* Recent activity */}
+        {/* Customer list */}
         <div className="rounded-xl border border-sand bg-white">
           <div className="border-b border-sand px-4 py-3">
-            <h2 className="text-sm font-semibold text-espresso">Actividad Reciente</h2>
+            <h2 className="text-sm font-semibold text-espresso">Clientes Recientes</h2>
           </div>
           <div className="divide-y divide-sand">
-            {recentActivity.map((activity) => {
-              const ActivityIcon = activityIcons[activity.type];
-              const colorClass = activityColors[activity.type];
-              const customer = customers.find((c) => c.id === activity.customerId);
+            {customers.slice(0, 10).map((customer) => {
+              const segment = segmentConfig[customer.segment] || segmentConfig.regular;
               return (
-                <div key={activity.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className={`flex size-8 items-center justify-center rounded-full ${colorClass}`}>
-                    <ActivityIcon className="size-4" />
+                <Link
+                  key={customer.id}
+                  href={`/crm/customers/${customer.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-cream/50 transition-colors"
+                >
+                  <div
+                    className={`flex size-9 items-center justify-center rounded-full text-xs font-bold ${getAvatarColor(customer.id)}`}
+                  >
+                    {getInitials(customer.name)}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-espresso">
-                      {customer && (
-                        <span className="font-medium">{customer.name}</span>
-                      )}{" "}
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-espresso-light">{activity.date}</p>
+                    <p className="text-sm font-medium text-espresso">{customer.name}</p>
+                    <p className="text-xs text-espresso-light">{customer.email || customer.phone || "Sin contacto"}</p>
                   </div>
-                  {activity.amount && (
-                    <span className="text-sm font-semibold text-sage font-mono">
-                      ${activity.amount.toFixed(2)}
-                    </span>
-                  )}
-                </div>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${segment.color}`}>
+                    {segment.label}
+                  </span>
+                </Link>
               );
             })}
           </div>
