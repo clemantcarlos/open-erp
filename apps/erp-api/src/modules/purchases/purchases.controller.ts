@@ -1,37 +1,44 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PurchasesService } from './purchases.service';
-import { Public } from '@/modules/auth/common/decorators/public.decorator';
+import { CreatePurchaseDto, UpdatePurchaseDto } from './dto/purchase.dto';
+import { Roles } from '../auth/common/decorators/roles.decorator';
 
+@ApiTags('purchases')
+@ApiBearerAuth()
 @Controller('purchases')
 export class PurchasesController {
   constructor(private readonly purchasesService: PurchasesService) {}
 
-  @Public()
   @Get()
-  findAll() {
-    return this.purchasesService.findAll();
+  @ApiOperation({ summary: 'List all purchases with optional filters' })
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('status') status?: string, @Query('supplier') supplier?: string) {
+    return this.purchasesService.findAll({ page: page ? +page : 1, limit: limit ? +limit : 20, status, supplier });
   }
 
-  @Public()
   @Post()
-  create(@Body() data: { supplier: string; items: any[]; subtotal: number; tax: number; total: number; status?: string; expectedDate?: string }) {
-    return this.purchasesService.create(data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Create a new purchase' })
+  create(@Body() dto: CreatePurchaseDto) {
+    return this.purchasesService.create(dto);
   }
 
-  @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Get a purchase by ID' })
   findOne(@Param('id') id: string) {
     return this.purchasesService.findOne(id);
   }
 
-  @Public()
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Record<string, any>) {
-    return this.purchasesService.update(id, data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Update a purchase' })
+  update(@Param('id') id: string, @Body() dto: UpdatePurchaseDto) {
+    return this.purchasesService.update(id, dto);
   }
 
-  @Public()
+  @Roles('admin')
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a purchase' })
   remove(@Param('id') id: string) {
     return this.purchasesService.remove(id);
   }

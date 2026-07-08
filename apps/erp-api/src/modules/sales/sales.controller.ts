@@ -1,37 +1,44 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
-import { Public } from '@/modules/auth/common/decorators/public.decorator';
+import { CreateSaleDto, UpdateSaleDto } from './dto/sale.dto';
+import { Roles } from '../auth/common/decorators/roles.decorator';
 
+@ApiTags('sales')
+@ApiBearerAuth()
 @Controller('sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
-  @Public()
   @Get()
-  findAll() {
-    return this.salesService.findAll();
+  @ApiOperation({ summary: 'List all sales with optional filters' })
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('status') status?: string, @Query('from') from?: string, @Query('to') to?: string) {
+    return this.salesService.findAll({ page: page ? +page : 1, limit: limit ? +limit : 20, status, from, to });
   }
 
-  @Public()
   @Post()
-  create(@Body() data: { customer?: string; items: any[]; subtotal: number; tax: number; total: number; status?: string; paymentMethod?: string }) {
-    return this.salesService.create(data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Create a new sale' })
+  create(@Body() dto: CreateSaleDto) {
+    return this.salesService.create(dto);
   }
 
-  @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Get a sale by ID' })
   findOne(@Param('id') id: string) {
     return this.salesService.findOne(id);
   }
 
-  @Public()
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Record<string, any>) {
-    return this.salesService.update(id, data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Update a sale' })
+  update(@Param('id') id: string, @Body() dto: UpdateSaleDto) {
+    return this.salesService.update(id, dto);
   }
 
-  @Public()
+  @Roles('admin')
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a sale' })
   remove(@Param('id') id: string) {
     return this.salesService.remove(id);
   }

@@ -1,37 +1,44 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { VisitsService } from './visits.service';
-import { Public } from '@/modules/auth/common/decorators/public.decorator';
+import { CreateVisitDto, UpdateVisitDto } from './dto/visit.dto';
+import { Roles } from '../auth/common/decorators/roles.decorator';
 
+@ApiTags('visits')
+@ApiBearerAuth()
 @Controller('visits')
 export class VisitsController {
   constructor(private readonly visitsService: VisitsService) {}
 
-  @Public()
   @Get()
-  findAll() {
-    return this.visitsService.findAll();
+  @ApiOperation({ summary: 'List all visits with optional filters' })
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('customerId') customerId?: string, @Query('type') type?: string) {
+    return this.visitsService.findAll({ page: page ? +page : 1, limit: limit ? +limit : 50, customerId, type });
   }
 
-  @Public()
   @Post()
-  create(@Body() data: { customerId: string; date: string; time: string; type?: string; effectiveness?: string; purpose?: string; notes?: string; duration?: number; nextVisit?: string }) {
-    return this.visitsService.create(data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Create a new visit' })
+  create(@Body() dto: CreateVisitDto) {
+    return this.visitsService.create(dto);
   }
 
-  @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Get a visit by ID' })
   findOne(@Param('id') id: string) {
     return this.visitsService.findOne(id);
   }
 
-  @Public()
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: Record<string, any>) {
-    return this.visitsService.update(id, data);
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  @ApiOperation({ summary: 'Update a visit' })
+  update(@Param('id') id: string, @Body() dto: UpdateVisitDto) {
+    return this.visitsService.update(id, dto);
   }
 
-  @Public()
+  @Roles('admin')
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a visit' })
   remove(@Param('id') id: string) {
     return this.visitsService.remove(id);
   }

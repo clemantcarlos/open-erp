@@ -6,13 +6,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 // dto
 import { AuthDto } from './dto/auth.dto';
-import { CreateUserDto } from 'src/modules/user/dto/user.dto';
+import { CreateUserDto } from '../user/dto/user.dto';
 // TYPES
 import type { User, ApiKey } from '@prisma/client';
 // interfaces
@@ -51,7 +51,7 @@ export class AuthService {
 
     if (!newUser) throw new InternalServerErrorException('Signup failed');
 
-    const tokens = await this.getTokens(newUser.id, newUser.email);
+    const tokens = await this.getTokens(newUser.id, newUser.email, newUser.role);
     await this.updateRtHash(newUser.id, tokens.refresh_token);
 
     const userPublicInfo = {
@@ -78,6 +78,7 @@ export class AuthService {
         name: true,
         email: true,
         password: true,
+        role: true,
       },
     });
 
@@ -89,7 +90,7 @@ export class AuthService {
     if (!passwordMatches)
       throw new UnauthorizedException('User or password incorrect');
 
-    const tokens = await this.getTokens(rest.id, rest.email);
+    const tokens = await this.getTokens(rest.id, rest.email, rest.role);
 
     await this.updateRtHash(rest.id, tokens.refresh_token);
 
@@ -133,7 +134,7 @@ export class AuthService {
 
     if (!rtMatches) throw new ForbiddenException('Access denied');
 
-    const tokens = await this.getTokens(user.id, user.email);
+    const tokens = await this.getTokens(user.id, user.email, user.role);
 
     await this.updateRtHash(user.id, tokens.refresh_token);
 
@@ -222,12 +223,13 @@ export class AuthService {
   async hashData(data: string) {
     return bcrypt.hash(data, 10);
   }
-  async getTokens(userId: string, email: string): Promise<Tokens> {
+  async getTokens(userId: string, email: string, role: string = 'user'): Promise<Tokens> {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
         {
           sub: userId,
           email,
+          role,
         },
         {
           secret: process.env.JWT_AT_SECRET,
@@ -238,6 +240,7 @@ export class AuthService {
         {
           sub: userId,
           email,
+          role,
         },
         {
           secret: process.env.JWT_RT_SECRET,
