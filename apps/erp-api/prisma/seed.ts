@@ -10,7 +10,7 @@ async function main() {
   if (!exists) {
     const hash = await bcrypt.hash("admin", 10);
     await prisma.user.create({
-      data: { name: "Admin", email, password: hash },
+      data: { name: "Admin", email, password: hash, role: "admin" },
     });
     console.log("Seeded admin user");
   }
@@ -274,16 +274,30 @@ async function main() {
 
   // Seed Manufacturing - Production Orders
   const productionOrdersData = [
-    { compositeProductId: "REST-001", compositeProductName: "Sandwich Club", quantityPlanned: 50, quantityProduced: 50, status: "completed", scheduledDate: new Date("2026-06-22"), completedDate: new Date("2026-06-22"), notes: "Pedido especial evento" },
-    { compositeProductId: "REST-002", compositeProductName: "Cappuccino", quantityPlanned: 100, quantityProduced: 72, status: "in_progress", scheduledDate: new Date("2026-06-23"), completedDate: null, notes: "" },
-    { compositeProductId: "IND-001", compositeProductName: "Widget A - Acero", quantityPlanned: 200, quantityProduced: 0, status: "planned", scheduledDate: new Date("2026-06-25"), completedDate: null, notes: "Orden mensual" },
-    { compositeProductId: "IND-002", compositeProductName: "Panel Solar 100W", quantityPlanned: 50, quantityProduced: 50, status: "completed", scheduledDate: new Date("2026-06-20"), completedDate: new Date("2026-06-21"), notes: "Proyecto techo solar" },
-    { compositeProductId: "IND-003", compositeProductName: "Motor Eléctrico 1HP", quantityPlanned: 30, quantityProduced: 12, status: "in_progress", scheduledDate: new Date("2026-06-23"), completedDate: null, notes: "Reposición stock mínimo" },
-    { compositeProductId: "REST-003", compositeProductName: "Tiramisú", quantityPlanned: 25, quantityProduced: 0, status: "cancelled", scheduledDate: new Date("2026-06-21"), completedDate: null, notes: "Cancelado por falta de mascarpone" },
+    { compositeProductSku: "REST-001", compositeProductName: "Sandwich Club", quantityPlanned: 50, quantityProduced: 50, status: "completed", scheduledDate: new Date("2026-06-22"), completedDate: new Date("2026-06-22"), notes: "Pedido especial evento" },
+    { compositeProductSku: "REST-002", compositeProductName: "Cappuccino", quantityPlanned: 100, quantityProduced: 72, status: "in_progress", scheduledDate: new Date("2026-06-23"), completedDate: null, notes: "" },
+    { compositeProductSku: "IND-001", compositeProductName: "Widget A - Acero", quantityPlanned: 200, quantityProduced: 0, status: "planned", scheduledDate: new Date("2026-06-25"), completedDate: null, notes: "Orden mensual" },
+    { compositeProductSku: "IND-002", compositeProductName: "Panel Solar 100W", quantityPlanned: 50, quantityProduced: 50, status: "completed", scheduledDate: new Date("2026-06-20"), completedDate: new Date("2026-06-21"), notes: "Proyecto techo solar" },
+    { compositeProductSku: "IND-003", compositeProductName: "Motor Eléctrico 1HP", quantityPlanned: 30, quantityProduced: 12, status: "in_progress", scheduledDate: new Date("2026-06-23"), completedDate: null, notes: "Reposición stock mínimo" },
+    { compositeProductSku: "REST-003", compositeProductName: "Tiramisú", quantityPlanned: 25, quantityProduced: 0, status: "cancelled", scheduledDate: new Date("2026-06-21"), completedDate: null, notes: "Cancelado por falta de mascarpone" },
   ];
 
   for (const order of productionOrdersData) {
-    await prisma.productionOrder.create({ data: order });
+    const cp = await prisma.compositeProduct.findUnique({ where: { sku: order.compositeProductSku } });
+    if (cp) {
+      await prisma.productionOrder.create({
+        data: {
+          compositeProductId: cp.id,
+          compositeProductName: order.compositeProductName,
+          quantityPlanned: order.quantityPlanned,
+          quantityProduced: order.quantityProduced,
+          status: order.status,
+          scheduledDate: order.scheduledDate,
+          completedDate: order.completedDate,
+          notes: order.notes,
+        },
+      });
+    }
   }
   console.log(`Seeded ${productionOrdersData.length} production orders`);
 

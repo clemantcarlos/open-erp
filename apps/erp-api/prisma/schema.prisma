@@ -13,6 +13,7 @@ model User {
   email            String  @unique
   password         String
   hashedRt         String?
+  role             String  @default("user")
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
@@ -63,6 +64,7 @@ model Sale {
   status        String   @default("paid")
   paymentMethod String   @default("cash")
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Purchase {
@@ -76,6 +78,7 @@ model Purchase {
   status       String   @default("pending")
   expectedDate DateTime?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Customer {
@@ -108,11 +111,13 @@ model Visit {
 
 // Manufacturing
 model ProcessStep {
-  id          String @id @default(uuid())
-  processId   String @unique
+  id          String   @id @default(uuid())
+  processId   String   @unique
   processName String
   description String
   order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model CompositeProduct {
@@ -123,8 +128,11 @@ model CompositeProduct {
   unit      String  @default("unid")
   salePrice Decimal @db.Decimal(10, 2)
   emoji     String  @default("📦")
-  bom       Json    // [{ ingredientId, ingredientName, quantity, unit, unitCost }]
-  routing   Json    // [{ processStepId, processName, costPerUnit, timeMinutes }]
+  bom       Json
+  routing   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    ProductionOrder[]
 }
 
 model ProductionOrder {
@@ -138,15 +146,19 @@ model ProductionOrder {
   completedDate        DateTime?
   notes                String?
   createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  compositeProduct     CompositeProduct @relation(fields: [compositeProductId], references: [id])
 }
 
 // Accounting
 model Account {
-  id      String @id @default(uuid())
-  code    String @unique
-  name    String
-  type    String // asset | liability | equity | revenue | expense
-  balance Decimal @db.Decimal(12, 2) @default(0)
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  type      String
+  balance   Decimal  @db.Decimal(12, 2) @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model JournalEntry {
@@ -155,8 +167,9 @@ model JournalEntry {
   description String
   reference   String
   status      String   @default("posted")
-  lines       Json     // [{ accountId, accountName, debit, credit }]
+  lines       Json
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Payroll
@@ -177,6 +190,10 @@ model Employee {
   emergencyContact String?
   emergencyPhone  String?
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  attendance      AttendanceRecord[]
+  leaveRequests   LeaveRequest[]
+  payrollRecords  PayrollRecord[]
 }
 
 model AttendanceRecord {
@@ -188,6 +205,9 @@ model AttendanceRecord {
   clockOut     String?
   hoursWorked  Decimal  @db.Decimal(4, 2) @default(0)
   status       String   @default("present")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  employee     Employee @relation(fields: [employeeId], references: [id])
 }
 
 model LeaveRequest {
@@ -202,6 +222,8 @@ model LeaveRequest {
   status       String   @default("pending")
   approvedBy   String?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  employee     Employee @relation(fields: [employeeId], references: [id])
 }
 
 model PayrollRecord {
@@ -217,4 +239,6 @@ model PayrollRecord {
   status       String   @default("pending")
   paidDate     DateTime?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  employee     Employee @relation(fields: [employeeId], references: [id])
 }
