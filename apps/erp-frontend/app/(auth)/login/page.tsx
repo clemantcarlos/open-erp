@@ -31,8 +31,6 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
       router.push("/");
     } catch {
       setError("No se pudo conectar al servidor");

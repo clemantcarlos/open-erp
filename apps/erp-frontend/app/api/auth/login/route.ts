@@ -21,11 +21,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { accessToken, refreshToken } = data.data.tokens;
+  const { access_token } = data.data.tokens;
   const user = data.data.user;
 
-  // Set httpOnly session cookie with the access token
-  await createSession({ userId: user.id, email: user.email });
+  // Set httpOnly session cookie with the backend access token
+  await createSession({ userId: user.id, email: user.email, accessToken: access_token });
 
-  return NextResponse.json({ accessToken, refreshToken });
+  return NextResponse.json({ ok: true });
 }
