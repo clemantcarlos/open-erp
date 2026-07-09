@@ -10,7 +10,6 @@ RUN npm ci --workspace=apps/erp-frontend
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/erp-frontend/node_modules ./apps/erp-frontend/node_modules
 COPY . .
 RUN npm run build --workspace=apps/erp-frontend
 
