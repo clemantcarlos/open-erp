@@ -4,7 +4,7 @@
   "description": "open erp backend",
   "author": "Carlos Clemant",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Elastic-2.0",
   "scripts": {
     "prisma:dev": "npx prisma migrate dev",
     "build": "nest build",
