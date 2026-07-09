@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSession } from "@/lib/session";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const API_URL = process.env.NEST_API_URL ?? "http://localhost:3000";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
