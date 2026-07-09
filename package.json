@@ -1,6 +1,7 @@
 {
   "name": "open-erp",
   "private": true,
+  "license": "Elastic-2.0",
   "workspaces": [
     "apps/*",
     "libs/*"

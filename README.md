@@ -10,6 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma)](https://www.prisma.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-Elastic_2.0-005B96)](LICENSE)
 
 </div>
 
@@ -258,7 +259,14 @@ The `use-case-spec/` directory contains detailed specifications for each module:
 
 ## License
 
-Private — not yet licensed. Contact for inquiries.
+Licensed under the [Elastic License 2.0](LICENSE).
+
+- ✅ Use, modify, and distribute
+- ✅ Self-host and run in production
+- ❌ Cannot offer as a hosted/managed SaaS service
+- ❌ Cannot remove license key functionality
+
+For commercial licensing inquiries, contact the maintainer.
 
 ---
 
