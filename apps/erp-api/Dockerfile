@@ -25,4 +25,4 @@ COPY --from=builder /app/apps/erp-api/prisma ./prisma
 
 USER nestjs
 EXPOSE 3000
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && ./node_modules/.bin/prisma db seed && node dist/main"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && ./node_modules/.bin/prisma db seed && node dist/src/main"]
