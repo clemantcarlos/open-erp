@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { join } from 'path';
 // GUARDS
 import { AtGuard } from '@/modules/auth/common/guards/at.guard';
+// INTERCEPTORS
+import { DemoInterceptor } from '@/interceptors/demo.interceptor';
 //MODULES
 import { AuthModule } from '@/modules/auth/auth.module';
 import { ProductsModule } from '@/modules/products/products.module';
@@ -45,6 +47,10 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: DemoInterceptor,
     },
   ],
 })

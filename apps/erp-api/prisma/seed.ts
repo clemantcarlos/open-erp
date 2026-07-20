@@ -15,6 +15,17 @@ async function main() {
     console.log("Seeded admin user");
   }
 
+  // Seed demo user (portfolio — writes are intercepted, nothing persists)
+  const demoEmail = "demo@openerp.local";
+  const demoExists = await prisma.user.findUnique({ where: { email: demoEmail } });
+  if (!demoExists) {
+    const demoHash = await bcrypt.hash("demo", 10);
+    await prisma.user.create({
+      data: { name: "Demo User", email: demoEmail, password: demoHash, role: "demo" },
+    });
+    console.log("Seeded demo user");
+  }
+
   // Seed products (POS + Inventory)
   const products = [
     { sku: "BEB-001", name: "Café Americano (500g)", category: "Bebidas", price: 12.5, quantity: 120, unit: "kg", minStock: 20 },
